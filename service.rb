@@ -4,6 +4,8 @@ require 'ap'
 require 'io/console'
 require 'json'
 require 'rest-client'
+require './account'
+require './transaction'
 
 
 class Service 
@@ -82,5 +84,42 @@ class Service
 
     response.code
   end  
+
+  def self.get_accounts(session)
+    raw_accounts = Service::fetch_data(session, :accounts)
+    accounts = []
+    raw_accounts.map do |raw_account|
+
+      account = Account.new
+      account.name        = raw_account["number"]
+      account.balance     = raw_account["balances"]["available"]["value"]
+      account.currency    = raw_account["balances"]["available"]["currency"]
+      account.description = raw_account["number"]
+
+      accounts << account
+    end
+
+    accounts
+  end  
+
+  def self.get_transactions(session)
+    raw_transactions = Service::fetch_data(session, :transactions)
+    transactions = []
+    raw_transactions.map do |raw_transaction|
+      transaction = Transaction.new
+      transaction.date        = raw_transaction["effectiveFrom"]
+      transaction.description = 
+           if raw_transaction["service"]
+            raw_transaction["service"]["name"]
+           else  
+            raw_transaction["description"]
+           end 
+      transaction.amount      = raw_transaction["totalAmount"]["value"]
+
+      transactions << transaction
+    end
+
+    transactions
+  end    
   
 end
