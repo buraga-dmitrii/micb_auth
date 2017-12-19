@@ -8,3 +8,5 @@ accounts     = Service::fetch_data(session, :accounts)
 transactions = Service::fetch_data(session, :transactions)
 
 code = Service::logout(session)
+
+ap transactions

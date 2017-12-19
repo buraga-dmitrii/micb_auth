@@ -12,7 +12,10 @@ class Service
   LOGIN_URL         = "#{BASE_MICB_URL}/session"
   ACCOUNTS_URL      = "#{BASE_MICB_URL}/contracts"
   TRANSACTIONS_URL  = "#{BASE_MICB_URL}/history?from=2017-11-13"  
-  DATA = {accounts: LOGIN_URL, transactions: ACCOUNTS_URL}
+  DATA = { 
+           accounts: ACCOUNTS_URL,
+           transactions: TRANSACTIONS_URL
+         }
 
   def self.user_input_credentials
     print "Login for your MICB account: "
@@ -61,7 +64,6 @@ class Service
       binding.pry  
       p e  
     end  
-
     JSON.parse(response.body)
   end
 
