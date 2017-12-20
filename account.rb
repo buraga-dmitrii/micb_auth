@@ -1,5 +1,5 @@
 class Account 
-  attr_accessor :name, :balance, :currency, :description
+  attr_accessor :id, :name, :balance, :currency, :description, :transactions
 
   def to_hash
     hash = {}

@@ -10,8 +10,9 @@ require './transaction'
 class Service
   BASE_MICB_URL     = 'https://wb.micb.md/way4u-wb2/api/v2'.freeze
   LOGIN_URL         = "#{BASE_MICB_URL}/session".freeze
+
   ACCOUNTS_URL      = "#{BASE_MICB_URL}/contracts".freeze
-  TRANSACTIONS_URL  = "#{BASE_MICB_URL}/history?from=2017-11-13".freeze
+  TRANSACTIONS_URL  = "#{BASE_MICB_URL}/history".freeze
   FETCHING_DATA = {
     accounts: ACCOUNTS_URL,
     transactions: TRANSACTIONS_URL
@@ -54,16 +55,32 @@ class Service
     raw_accounts = Service.fetch_data(session, :accounts)
     raw_accounts.map do |raw_account|
       account = Account.new
-      account.name        = raw_account['number']
-      account.balance     = raw_account['balances']['available']['value']
-      account.currency    = raw_account['balances']['available']['currency']
-      account.description = raw_account['number']
+      account.id           = raw_account['id']
+      account.name         = raw_account['number']
+      account.balance      = raw_account['balances']['available']['value']
+      account.currency     = raw_account['balances']['available']['currency']
+      account.description  = raw_account['number']
+      account.transactions = Service.get_transactions(session, account)
       account
     end
   end
 
-  def self.get_transactions(session)
-    raw_transactions = Service.fetch_data(session, :transactions)
+  def self.get_transactions(session, account)
+    response = request {
+                    RestClient::Request.execute(
+                      method: :get,
+                      url: TRANSACTIONS_URL,
+                      cookies: session.cookies,
+                      headers: {
+                        params: {
+                          'from' => '2017-11-21',
+                          'contractId' => account.id
+                          }
+                        }
+                      )
+                    }
+
+    raw_transactions = JSON.parse(response.body)
     raw_transactions.map do |raw_transaction|
       transaction = Transaction.new
       transaction.date        = raw_transaction['operationTime']
