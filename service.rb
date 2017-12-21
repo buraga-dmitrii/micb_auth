@@ -13,10 +13,6 @@ class Service
 
   ACCOUNTS_URL      = "#{BASE_MICB_URL}/contracts".freeze
   TRANSACTIONS_URL  = "#{BASE_MICB_URL}/history".freeze
-  FETCHING_DATA = {
-    accounts: ACCOUNTS_URL,
-    transactions: TRANSACTIONS_URL
-  }.freeze
 
   def self.user_input_credentials
     print 'Login for your MICB account: '
@@ -26,80 +22,79 @@ class Service
   end
 
   def self.login_with(login, password)
-    puts 'Trying to login...'
-    request {
-      RestClient.post LOGIN_URL,
+    request {  RestClient.post LOGIN_URL,
                       { 'login' => login,
                         'password' => password,
                         'captcha' => '' }.to_json,
                       content_type: :json, accept: :json
-    }
-  end
-
-  def self.fetch_data(session, info_type)
-    puts "Fetching #{info_type}..."
-    response = request {
-      RestClient.get FETCHING_DATA[info_type],
-                     cookies: session.cookies
-    }
-    JSON.parse(response.body)
+            }
   end
 
   def self.logout(session)
-    puts 'Loging out...'
     response = request { RestClient.delete LOGIN_URL, cookies: session.cookies }
     response.code
   end
 
   def self.get_accounts(session)
-    raw_accounts = Service.fetch_data(session, :accounts)
-    raw_accounts.map do |raw_account|
-      account = Account.new
-      account.id           = raw_account['id']
-      account.name         = raw_account['number']
-      account.balance      = raw_account['balances']['available']['value']
-      account.currency     = raw_account['balances']['available']['currency']
-      account.description  = raw_account['number']
-      account.transactions = Service.get_transactions(session, account)
-      account
-    end
+    response = request { RestClient.get ACCOUNTS_URL, cookies: session.cookies }
+    raw_accounts = JSON.parse(response.body)
+    map_accounts(raw_accounts, session)
   end
 
   def self.get_transactions(session, account)
-    response = request {
-                    RestClient::Request.execute(
-                      method: :get,
-                      url: TRANSACTIONS_URL,
-                      cookies: session.cookies,
-                      headers: {
-                        params: {
-                          'from' => '2017-11-21',
-                          'contractId' => account.id
-                          }
+    response = request {  RestClient::Request.execute(
+                          method: :get,
+                          url: TRANSACTIONS_URL,
+                          cookies: session.cookies,
+                          headers: {
+                            params: {
+                              'from' => Date.today.prev_month.to_s,
+                              'contractId' => account.id
+                              }
+                            }
+                          )
                         }
-                      )
-                    }
-
     raw_transactions = JSON.parse(response.body)
-    raw_transactions.map do |raw_transaction|
-      transaction = Transaction.new
-      transaction.date        = raw_transaction['operationTime']
-      transaction.description = raw_transaction['service'] ? raw_transaction['service']['name'] : raw_transaction['description']
-      transaction.amount      = raw_transaction['totalAmount']['value']
-      transaction
-    end
+    map_transactions(raw_transactions)
   end
 
   private
 
+  def self.map_accounts(raw_accounts, session)
+    raw_accounts.map do |raw_account|
+      account = Account.new
+      account.id           = raw_account['id'] || ''
+      account.name         = raw_account['number'] || ''
+      account.balance      = raw_account['balances']['available']['value']  || ''
+      account.currency     = raw_account['balances']['available']['currency']  || ''
+      account.description  = raw_account['number']  || ''
+      account.transactions = Service.get_transactions(session, account) || []
+      account
+    end
+  end
+
+  def self.map_transactions(raw_transactions)
+    raw_transactions.map do |raw_transaction|
+      transaction = Transaction.new
+      transaction.date        = raw_transaction['operationTime'] || ''
+      transaction.description = raw_transaction['service'] ? raw_transaction['service']['name'] : raw_transaction['description']
+      transaction.amount      = raw_transaction['totalAmount']['value'] || ''
+      transaction
+    end    
+  end
+
   def self.request
     yield
-    rescue RestClient.ExceptionWithResponse => e
+    rescue RestClient::RequestFailed => e
       case e.response.code
+      when 404
+        abort 'Resource not found'
       when 405
         abort 'Access denied'
       when 412
         abort 'Invalid Login or Password'
+      else
+        abort e.to_s  
       end
     rescue SocketError => e
       abort "Can't connect to the service"
