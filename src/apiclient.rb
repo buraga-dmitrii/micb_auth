@@ -4,10 +4,10 @@ require 'ap'
 require 'io/console'
 require 'json'
 require 'rest-client'
-require './account'
-require './transaction'
+require './src/account'
+require './src/transaction'
 
-class Service
+class ApiCLient
   BASE_MICB_URL     = 'https://wb.micb.md/way4u-wb2/api/v2'.freeze
   LOGIN_URL         = "#{BASE_MICB_URL}/session".freeze
 
@@ -16,15 +16,14 @@ class Service
 
   def self.user_input_credentials
     print 'Login for your MICB account: '
-    login    = gets.chomp
-    password = STDIN.getpass('Password for your MICB account: ').chomp
-    [login, password]
+    ENV['login']    = gets.chomp
+    ENV['password'] = STDIN.getpass('Password for your MICB account: ').chomp
   end
 
-  def self.login_with(login, password)
+  def self.login
     request {  RestClient.post LOGIN_URL,
-                      { 'login' => login,
-                        'password' => password,
+                      { 'login' => ENV['login'],
+                        'password' => ENV['password'],
                         'captcha' => '' }.to_json,
                       content_type: :json, accept: :json
             }
@@ -68,7 +67,7 @@ class Service
       account.balance      = raw_account['balances']['available']['value']  || ''
       account.currency     = raw_account['balances']['available']['currency']  || ''
       account.description  = raw_account['number']  || ''
-      account.transactions = Service.get_transactions(session, account) || []
+      account.transactions = ApiCLient.get_transactions(session, account) || []
       account
     end
   end

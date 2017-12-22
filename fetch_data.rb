@@ -1,16 +1,15 @@
-require './service'
+require './src/apiclient'
 
-login, password = Service.user_input_credentials
+ApiCLient.user_input_credentials
 
 puts 'Trying to login...'
-session  = Service.login_with(login, password)
+session  = ApiCLient.login
 
 puts "Fetching data..."
-accounts = Service.get_accounts(session)
-
+accounts = ApiCLient.get_accounts(session)
 
 puts 'Loging out...'
-code = Service.logout(session)
+code = ApiCLient.logout(session)
 
 results = JSON.pretty_generate({ "accounts":  accounts })
 puts results
