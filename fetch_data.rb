@@ -1,16 +1,16 @@
 require './src/apiclient'
 
-ApiCLient.user_input_credentials
+ApiClient.user_input_credentials
 
 puts 'Trying to login...'
-session  = ApiCLient.login
+session  = ApiClient.login
 
 puts "Fetching data..."
-accounts = ApiCLient.get_accounts(session)
+accounts = ApiClient.get_accounts(session)
 
 puts 'Loging out...'
-code = ApiCLient.logout(session)
+code = ApiClient.logout(session)
 
-results = JSON.pretty_generate({ "accounts":  accounts })
-puts results
+result = JSON.pretty_generate({ "accounts":  accounts })
+puts result
 
