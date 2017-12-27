@@ -17,6 +17,8 @@
 require 'webmock/rspec'
 require 'vcr'
 require './src/apiclient'
+require "yaml"
+Dir["./spec/support/**/*.rb"].each { |f| require f}
 
 VCR.configure do |c|
   c.cassette_library_dir = 'fixtures/vcr_cassettes' 
@@ -25,6 +27,8 @@ VCR.configure do |c|
   c.filter_sensitive_data('<LOGIN>') { ENV['login'] }
   c.filter_sensitive_data('<PASSWORD>') { ENV['password'] }
 end
+
+
 
 RSpec.configure do |config|
   # rspec-expectations config goes here. You can use an alternate
@@ -110,4 +114,18 @@ RSpec.configure do |config|
   # as the one that triggered the failure.
   Kernel.srand config.seed
 =end
+end
+
+def load_credentials
+  credentials = YAML.load_file("secrets.yml")
+  ENV['login']=credentials['login']
+  ENV['password']=credentials['password']
+end
+
+def body_as_json
+  json_str_to_hash(@response.body)
+end
+
+def json_str_to_hash(str)
+  JSON.parse(str)
 end
