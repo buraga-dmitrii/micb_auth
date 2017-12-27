@@ -39,7 +39,6 @@ class ApiClient
   end
 
   def self.api_login
-    # binding.pry
     RestClient.post LOGIN_URL,
                     { 'login' => ENV['login'],
                       'password' => ENV['password'],
